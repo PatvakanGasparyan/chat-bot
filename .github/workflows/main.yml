@@ -1,51 +1,51 @@
 name: CI-CD-Telegram-Bot-Docker
 
 on:
-  push:
-    branches:
-      - main
+  push:
+    branches:
+      - main
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Archive project
-      run: zip -r telegram_bot.zip . -x "*.git*" "__pycache__/*"
+      - name: Archive project
+        run: zip -r telegram_bot.zip . -x "*.git*" "__pycache__/*"
 
-    - name: Copy files to EC2 via SCP
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        source: "telegram_bot.zip"
-        target: "~/"
+      - name: Copy files to EC2 via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: telegram_bot.zip
+          target: ~/
 
-    - name: SSH and run Docker container
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          rm -rf ~/telegram_bot
-          mkdir -p ~/telegram_bot
-          unzip -o ~/telegram_bot.zip -d ~/telegram_bot
-          cd ~/telegram_bot
+      - name: SSH and run Docker container
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            rm -rf ~/telegram_bot
+            mkdir -p ~/telegram_bot
+            unzip -o ~/telegram_bot.zip -d ~/telegram_bot
+            cd ~/telegram_bot
 
-          # :point_right: создаём .env файл
-          echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > .env
+            # создаём .env файл
+            echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" > .env
 
-          sudo docker stop telegram_bot_container || true
-          sudo docker rm telegram_bot_container || true
-          sudo docker build -t telegram_bot_image .
+            sudo docker stop telegram_bot_container || true
+            sudo docker rm telegram_bot_container || true
+            sudo docker build -t telegram_bot_image .
 
-          # :point_right: передаём env в контейнер
-          sudo docker run -d \
-            --name telegram_bot_container \
-            --env-file .env \
-            telegram_bot_image
+            # передаём env в контейнер
+            sudo docker run -d \
+              --name telegram_bot_container \
+              --env-file .env \
+              telegram_bot_image
