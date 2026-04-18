@@ -1,18 +1,28 @@
+import telebot
+from dotenv import load_dotenv
+import os
 
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+load_dotenv()
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('Привет! Я чат-бот.')
+# Replace with your token from @BotFather
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Ты написал: {update.message.text}')
+bot = telebot.TeleBot(os.getenv('TOKEN'))
 
-if __name__ == '__main__':
-    application = ApplicationBuilder().token('8597458494:AAGNXmOkOnPfaLbPTJeqZ4Y1jC-OMoVUCmk').build()
+# Command: /start
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.reply_to(message, "Hello! I'm your bot :wave:")
 
-    application.add_handler(CommandHandler('start', start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+# Command: /help
+@bot.message_handler(commands=['help'])
+def help_command(message):
+    bot.reply_to(message, "Available commands:\n/start\n/help")
 
-    application.run_polling()
+# Echo all messages
+@bot.message_handler(func=lambda message: True)
+def echo(message):
+    bot.reply_to(message, f"You said: {message.text}")
 
+# Run bot
+print("Bot is running...")
+bot.infinity_polling()
